@@ -5,6 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Streak Tracker</title>
   <link rel="stylesheet" href="style.css" />
+
+  <!-- OneSignal -->
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "9f5f66ba-cf0f-489b-935c-be80b53795bc"
+      });
+    });
+  </script>
+</head>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Streak Tracker</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
@@ -61,3 +78,4 @@
   <script src="script.js"></script>
 </body>
 </html>
+
