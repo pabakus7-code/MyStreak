@@ -1,171 +1,161 @@
-const els = {
-  streak: document.getElementById("streak"),
-  lastChecked: document.getElementById("lastChecked"),
-  status: document.getElementById("status"),
-  addDay: document.getElementById("addDay"),
-  reset: document.getElementById("reset"),
-  streakName: document.getElementById("streakName"),
-  saveName: document.getElementById("saveName"),
-  themeToggle: document.getElementById("themeToggle"),
-};
+// Elements
+const streakEl = document.getElementById("streak");
+const lastCheckedEl = document.getElementById("lastChecked");
+const statusEl = document.getElementById("status");
+const checkInBtn = document.getElementById("checkIn");
+const resetBtn = document.getElementById("reset");
 
+const themeToggle = document.getElementById("themeToggle");
+
+const nameDisplay = document.getElementById("nameDisplay");
+const nameEditor = document.getElementById("nameEditor");
+const nameInput = document.getElementById("nameInput");
+const nameSave = document.getElementById("nameSave");
+
+// Storage keys
 const KEYS = {
   count: "streak_count",
-  last: "streak_last_checked",     // YYYY-MM-DD
+  last: "streak_last_checked",   // YYYY-MM-DD
   name: "streak_name",
-  theme: "theme_pref",             // "dark" | "light" | "auto"
+  theme: "theme",               // "light" | "dark"
 };
 
-function pad2(n){ return String(n).padStart(2, "0"); }
-function todayISO(){
+// Date helpers
+const pad2 = (n) => String(n).padStart(2, "0");
+const todayISO = () => {
   const d = new Date();
   return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
-}
-function isoToPretty(iso){
+};
+const isoToPretty = (iso) => {
   if (!iso) return "never";
   const [y,m,d] = iso.split("-").map(Number);
-  const dt = new Date(y, m-1, d);
-  return dt.toLocaleDateString(undefined, { year:"numeric", month:"short", day:"numeric" });
-}
-function daysBetween(isoA, isoB){
-  // difference in whole days between two YYYY-MM-DD dates (isoB - isoA)
+  return new Date(y, m-1, d).toLocaleDateString(undefined, {year:"numeric", month:"short", day:"numeric"});
+};
+const daysBetween = (isoA, isoB) => {
   const [y1,m1,d1] = isoA.split("-").map(Number);
   const [y2,m2,d2] = isoB.split("-").map(Number);
   const a = Date.UTC(y1, m1-1, d1);
   const b = Date.UTC(y2, m2-1, d2);
   return Math.floor((b - a) / 86400000);
+};
+
+function setStatus(msg){ statusEl.textContent = msg || ""; }
+
+// Theme
+function applyTheme(theme){
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem(KEYS.theme, theme);
+  themeToggle.textContent = theme === "dark" ? "🌙" : "☀️";
+}
+function toggleTheme(){
+  const current = localStorage.getItem(KEYS.theme) || "light";
+  applyTheme(current === "dark" ? "light" : "dark");
 }
 
-function load(){
-  const count = Number(localStorage.getItem(KEYS.count) ?? "0");
-  const last = localStorage.getItem(KEYS.last) || "";
-  const name = localStorage.getItem(KEYS.name) || "My Streak Tracker";
-  const theme = localStorage.getItem(KEYS.theme) || "auto";
-
-  els.streak.textContent = String(count);
-  els.lastChecked.textContent = `Last checked: ${isoToPretty(last)}`;
-  els.streakName.value = name;
-
-  applyTheme(theme);
-  updateTitle(name);
-
-  els.status.textContent = "";
+// Name edit UI
+function openNameEditor(){
+  nameInput.value = localStorage.getItem(KEYS.name) || nameDisplay.textContent || "";
+  nameEditor.classList.remove("hidden");
+  nameInput.focus();
+  nameInput.select();
 }
-
-function saveCount(n){
-  localStorage.setItem(KEYS.count, String(n));
-  els.streak.textContent = String(n);
+function closeNameEditor(){
+  nameEditor.classList.add("hidden");
 }
-
-function saveLast(iso){
-  if (iso) localStorage.setItem(KEYS.last, iso);
-  else localStorage.removeItem(KEYS.last);
-  els.lastChecked.textContent = `Last checked: ${isoToPretty(iso)}`;
-}
-
-function updateTitle(name){
-  // Page title + visible header
-  document.title = name;
-  document.querySelector(".title").textContent = name;
-}
-
-function setStatus(msg){
-  els.status.textContent = msg;
-}
-
-function checkIn(){
-  const now = todayISO();
-  const last = localStorage.getItem(KEYS.last) || "";
-  const current = Number(localStorage.getItem(KEYS.count) ?? "0");
-
-  if (last === now){
-    setStatus("Already checked in today ✅");
-    return;
-  }
-
-  if (!last){
-    // first ever check-in
-    saveCount(1);
-    saveLast(now);
-    setStatus("Started! Nice 👏");
-    return;
-  }
-
-  const diff = daysBetween(last, now);
-
-  if (diff === 1){
-    // consecutive day
-    saveCount(current + 1);
-    saveLast(now);
-    setStatus("Kept the streak going 🔥");
-  } else {
-    // missed days
-    saveCount(1);
-    saveLast(now);
-    setStatus("You missed a day, so it reset — new streak started 💪");
-  }
-}
-
-function resetAll(){
-  saveCount(0);
-  saveLast("");
-  setStatus("Reset done.");
-}
-
 function saveName(){
-  const name = (els.streakName.value || "").trim();
-  if (!name){
-    setStatus("Type a name first (example: Days free of smoking).");
-    return;
-  }
-  localStorage.setItem(KEYS.name, name);
-  updateTitle(name);
+  const val = (nameInput.value || "").trim();
+  if (!val) { setStatus("Type a name first."); return; }
+  localStorage.setItem(KEYS.name, val);
+  nameDisplay.textContent = val;
+  document.title = val;
+  closeNameEditor();
   setStatus("Name saved ✅");
 }
 
-/* Theme */
-function systemPrefersDark(){
-  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
+// Streak logic
+function render(){
+  const count = Number(localStorage.getItem(KEYS.count) || "0");
+  const last = localStorage.getItem(KEYS.last) || "";
+  const name = localStorage.getItem(KEYS.name) || "Streak Tracker";
+  const theme = localStorage.getItem(KEYS.theme) || "light";
 
-function applyTheme(pref){
-  // pref: "dark" | "light" | "auto"
-  if (pref === "auto"){
-    const theme = systemPrefersDark() ? "dark" : "light";
-    document.documentElement.dataset.theme = theme;
+  nameDisplay.textContent = name;
+  document.title = name;
+
+  streakEl.textContent = String(count);
+  lastCheckedEl.textContent = `Last checked: ${isoToPretty(last)}`;
+
+  applyTheme(theme);
+
+  // prevent spamming
+  const today = todayISO();
+  if (last === today){
+    checkInBtn.disabled = true;
+    checkInBtn.textContent = "Checked in ✅";
   } else {
-    document.documentElement.dataset.theme = pref;
+    checkInBtn.disabled = false;
+    checkInBtn.textContent = "Check in today";
   }
-  localStorage.setItem(KEYS.theme, pref);
-
-  // update icon
-  const actual = document.documentElement.dataset.theme;
-  els.themeToggle.textContent = actual === "dark" ? "🌙" : "☀️";
 }
 
-function toggleTheme(){
-  const pref = localStorage.getItem(KEYS.theme) || "auto";
-  // cycle: auto -> dark -> light -> auto
-  const next = pref === "auto" ? "dark" : (pref === "dark" ? "light" : "auto");
-  applyTheme(next);
-  setStatus(next === "auto" ? "Theme: auto (system)" : `Theme: ${next}`);
+function checkIn(){
+  const today = todayISO();
+  const last = localStorage.getItem(KEYS.last) || "";
+  let count = Number(localStorage.getItem(KEYS.count) || "0");
+
+  // Already checked today
+  if (last === today){
+    setStatus("Already checked in today ✅");
+    render();
+    return;
+  }
+
+  // First ever check in
+  if (!last){
+    count = 1;
+    localStorage.setItem(KEYS.count, String(count));
+    localStorage.setItem(KEYS.last, today);
+    setStatus("Started! Nice 👏");
+    render();
+    return;
+  }
+
+  const diff = daysBetween(last, today);
+
+  if (diff === 1){
+    count += 1;
+    setStatus("Kept the streak going 🔥");
+  } else {
+    count = 1;
+    setStatus("Missed a day — reset to 1 💪");
+  }
+
+  localStorage.setItem(KEYS.count, String(count));
+  localStorage.setItem(KEYS.last, today);
+  render();
 }
 
-/* Events */
-els.addDay.addEventListener("click", checkIn);
-els.reset.addEventListener("click", resetAll);
-els.saveName.addEventListener("click", saveName);
-els.streakName.addEventListener("keydown", (e) => {
+function resetStreak(){
+  localStorage.setItem(KEYS.count, "0");
+  localStorage.removeItem(KEYS.last);
+  setStatus("Reset done.");
+  render();
+}
+
+// Events
+themeToggle.addEventListener("click", toggleTheme);
+
+checkInBtn.addEventListener("click", checkIn);
+resetBtn.addEventListener("click", resetStreak);
+
+nameDisplay.addEventListener("click", openNameEditor);
+nameDisplay.addEventListener("keydown", (e) => { if (e.key === "Enter") openNameEditor(); });
+
+nameSave.addEventListener("click", saveName);
+nameInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") saveName();
+  if (e.key === "Escape") closeNameEditor();
 });
-els.themeToggle.addEventListener("click", toggleTheme);
 
-// React to system theme changes if on auto
-if (window.matchMedia){
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-    const pref = localStorage.getItem(KEYS.theme) || "auto";
-    if (pref === "auto") applyTheme("auto");
-  });
-}
-
-load();
+// Init
+render();
