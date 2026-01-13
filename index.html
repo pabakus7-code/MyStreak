@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,26 +7,18 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <button id="themeToggle" class="themeBtn" type="button" aria-label="Toggle dark mode">🌙</button>
+
   <main class="wrap">
-    <header class="top">
-      <div class="brand">
-        <div class="logo" aria-hidden="true">🔥</div>
-        <div>
-          <h1 class="title">Streak Tracker</h1>
-          <p class="subtitle">One tap a day. Keep it simple.</p>
-        </div>
-      </div>
-
-      <button id="themeToggle" class="iconBtn" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
-        🌙
-      </button>
-    </header>
-
     <section class="card">
-      <label class="label" for="streakName">Streak name</label>
-      <div class="row">
-        <input id="streakName" class="input" type="text" placeholder="e.g. Days free of smoking" maxlength="60" />
-        <button id="saveName" class="btn btnGhost" type="button">Save</button>
+      <!-- Click-to-edit name -->
+      <div class="nameArea">
+        <h1 id="nameDisplay" class="nameDisplay" tabindex="0">Streak Tracker</h1>
+
+        <div id="nameEditor" class="nameEditor hidden">
+          <input id="nameInput" class="input" type="text" maxlength="60" placeholder="e.g. Days free of smoking" />
+          <button id="nameSave" class="btn btnGhost" type="button">Save</button>
+        </div>
       </div>
 
       <div class="big">
@@ -43,22 +35,14 @@
       </div>
 
       <div class="buttons">
-        <button id="addDay" class="btn btnPrimary" type="button">Check in today</button>
+        <button id="checkIn" class="btn btnPrimary" type="button">Check in today</button>
         <button id="reset" class="btn btnDanger" type="button">Reset</button>
       </div>
 
-      <p class="hint">
-        Tip: If you miss a day, your streak resets automatically next time you check in.
-      </p>
+      <p class="hint">You can only check in once per day. Miss a day and it resets next time.</p>
     </section>
-
-    <footer class="footer">
-      <span>Saved on this device (browser storage).</span>
-    </footer>
   </main>
 
   <script src="script.js"></script>
 </body>
 </html>
-
-
