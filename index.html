@@ -7,18 +7,25 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <button id="themeToggle" class="themeBtn" type="button" aria-label="Toggle dark mode">🌙</button>
+
+  <!-- Dark mode button (top-right) -->
+  <button id="themeToggle" class="themeBtn" type="button">🌙</button>
 
   <main class="wrap">
     <section class="card">
-      <!-- Click-to-edit name -->
-      <div class="nameArea">
-        <h1 id="nameDisplay" class="nameDisplay" tabindex="0">Streak Tracker</h1>
 
-        <div id="nameEditor" class="nameEditor hidden">
-          <input id="nameInput" class="input" type="text" maxlength="60" placeholder="e.g. Days free of smoking" />
-          <button id="nameSave" class="btn btnGhost" type="button">Save</button>
-        </div>
+      <!-- Click title to edit name -->
+      <h1 id="nameDisplay" class="nameDisplay" tabindex="0">Streak Tracker</h1>
+
+      <div id="nameEditor" class="nameEditor hidden">
+        <input
+          id="nameInput"
+          class="input"
+          type="text"
+          maxlength="60"
+          placeholder="e.g. Days free of smoking"
+        />
+        <button id="nameSave" class="btn btnGhost" type="button">Save</button>
       </div>
 
       <div class="big">
@@ -28,21 +35,29 @@
 
       <div class="meta">
         <div class="pill">
-          <span class="dot" aria-hidden="true"></span>
+          <span class="dot"></span>
           <span id="lastChecked">Last checked: never</span>
         </div>
-        <div id="status" class="status" aria-live="polite"></div>
+        <div id="status" class="status"></div>
       </div>
 
       <div class="buttons">
-        <button id="checkIn" class="btn btnPrimary" type="button">Check in today</button>
-        <button id="reset" class="btn btnDanger" type="button">Reset</button>
+        <button id="checkIn" class="btn btnPrimary" type="button">
+          Check in today
+        </button>
+        <button id="reset" class="btn btnDanger" type="button">
+          Reset
+        </button>
       </div>
 
-      <p class="hint">You can only check in once per day. Miss a day and it resets next time.</p>
+      <p class="hint">
+        You can only check in once per day. Miss a day and it resets.
+      </p>
+
     </section>
   </main>
 
+  <!-- IMPORTANT: script at the bottom -->
   <script src="script.js"></script>
 </body>
 </html>
