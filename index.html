@@ -6,7 +6,7 @@
   <title>Streak Tracker</title>
   <link rel="stylesheet" href="style.css" />
 
-  <!-- OneSignal -->
+  <!-- OneSignal (keep appId) -->
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
     window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -20,7 +20,7 @@
 
 <body>
   <!-- Confetti layer -->
-  <div id="confettiLayer" class="confettiLayer"></div>
+  <div id="confettiLayer" class="confettiLayer" aria-hidden="true"></div>
 
   <!-- Milestone modal -->
   <div id="milestoneModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Milestone reached">
@@ -32,7 +32,7 @@
     </div>
   </div>
 
-  <!-- Dark mode button (top-right) -->
+  <!-- Dark mode button -->
   <button id="themeToggle" class="themeBtn" type="button" aria-label="Toggle theme">🌙</button>
 
   <main class="wrap">
@@ -72,38 +72,44 @@
         <button id="reset" class="btn btnDanger" type="button">Reset</button>
       </div>
 
-      <p class="hint">
-        You can only check in once per day. Miss a day and it resets.
-      </p>
+      <p class="hint">You can only check in once per day. Miss a day and it resets.</p>
 
-      <!-- ✅ Milestones (your design) -->
+      <!-- Milestones (your design) -->
       <div class="milestonesWrap">
         <div class="milestonesTopRow">
           <div class="milestonesTitle">Milestones</div>
           <div id="milestoneNext" class="milestonesNext">Next: —</div>
         </div>
 
-        <!-- numbers row -->
-        <div id="milestoneTicks" class="milestoneTicks"></div>
+        <div class="milestoneTicks" id="milestoneTicks">
+          <span class="tick" data-m="1">1</span>
+          <span class="tick" data-m="5">5</span>
+          <span class="tick" data-m="10">10</span>
+          <span class="tick" data-m="30">30</span>
+          <span class="tick" data-m="50">50</span>
+          <span class="tick" data-m="100">100</span>
+          <span class="tick" data-m="500">500</span>
+          <span class="tick" data-m="1000">1000</span>
+        </div>
 
-        <!-- progress bar -->
         <div class="milestoneTrack" aria-label="Milestone progress bar">
           <div id="milestoneFill" class="milestoneFill"></div>
         </div>
       </div>
 
-      <!-- Reminders (leave as you have it; this doesn’t break it) -->
+      <!-- Reminders -->
       <div class="reminders">
-        <button id="enableNotifs" class="btn btnGhost" type="button">Enable reminders</button>
+        <div class="remindersRow">
+          <button id="enableNotifs" class="btn btnGhost" type="button">Enable reminders</button>
 
-        <label class="label" for="remindTime">Daily reminder time</label>
+          <div class="timeBox">
+            <label class="label" for="remindTime">Daily reminder time</label>
+            <!-- Alarm/scroll wheel style on mobile -->
+            <input id="remindTime" class="input" type="time" step="1800" />
+          </div>
 
-        <!-- keep your current time UI if you want -->
-        <select id="remindTime" class="input">
-          <option value="">Choose a time…</option>
-          <option value="21:30">9:30 PM</option>
-          <option value="22:00">10:00 PM</option>
-        </select>
+          <button id="saveRemindTime" class="btn btnGhost" type="button">Save time</button>
+        </div>
 
         <div id="notifStatus" class="status"></div>
       </div>
@@ -111,6 +117,7 @@
     </section>
   </main>
 
+  <!-- IMPORTANT: must be EXACT filename -->
   <script src="script.js"></script>
 </body>
 </html>
