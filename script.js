@@ -1,4 +1,4 @@
-// ---------------- helpers ----------------
+// ---- helpers ----
 const pad2 = (n) => String(n).padStart(2, "0");
 const todayISO = () => {
   const d = new Date();
@@ -20,9 +20,12 @@ const daysBetween = (a, b) => {
   const t2 = Date.UTC(y2, m2 - 1, d2);
   return Math.floor((t2 - t1) / 86400000);
 };
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+// Safe getter
 const $ = (id) => document.getElementById(id);
 
-// ---------------- elements ----------------
+// ---- elements ----
 const streakEl = $("streak");
 const lastCheckedEl = $("lastChecked");
 const statusEl = $("status");
@@ -32,43 +35,38 @@ const resetBtn = $("reset");
 
 const themeToggle = $("themeToggle");
 
-// Name edit
+// Name click-to-edit UI
 const nameDisplay = $("nameDisplay");
 const nameEditor = $("nameEditor");
 const nameInput = $("nameInput");
 const nameSave = $("nameSave");
 
-// Reminders UI
-const enableNotifsBtn = $("enableNotifs");
-const remindTimeInput = $("remindTime");       // <input type="time">
-const saveRemindTimeBtn = $("saveRemindTime");
-const repeat30Chk = $("repeat30");
-const notifStatusEl = $("notifStatus");
-const nextReminderEl = $("nextReminder");
+// Milestones UI
+const milestoneBarsEl = $("milestoneBars");
+const milestoneNextEl = $("milestoneNext");
 
-// ---------------- storage keys ----------------
+// Modal + confetti
+const milestoneModal = $("milestoneModal");
+const milestoneNumber = $("milestoneNumber");
+const milestoneClose = $("milestoneClose");
+const confettiLayer = $("confettiLayer");
+
+// ---- config ----
+const MILESTONES = [1, 5, 10, 30, 50, 100, 500, 1000];
+
+// ---- storage keys ----
 const KEYS = {
   count: "streak_count",
   last: "streak_last_checked",
   name: "streak_name",
   theme: "theme",
-  remindTime: "remind_time",     // "HH:MM"
-  repeat30: "repeat_30_open_tab" // "1" or "0"
 };
-
-let repeat30Timer = null;
 
 function setStatus(msg) {
   if (statusEl) statusEl.textContent = msg || "";
 }
-function setNotifStatus(msg) {
-  if (notifStatusEl) notifStatusEl.textContent = msg || "";
-}
-function setNextReminder(msg) {
-  if (nextReminderEl) nextReminderEl.textContent = msg || "";
-}
 
-// ---------------- theme ----------------
+// ---- theme ----
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem(KEYS.theme, theme);
@@ -79,7 +77,7 @@ function toggleTheme() {
   applyTheme(cur === "dark" ? "light" : "dark");
 }
 
-// ---------------- name editor ----------------
+// ---- name editor ----
 function openNameEditor() {
   if (!nameEditor || !nameInput) return;
   nameEditor.classList.remove("hidden");
@@ -100,11 +98,136 @@ function saveName() {
   localStorage.setItem(KEYS.name, val);
   if (nameDisplay) nameDisplay.textContent = val;
   document.title = val;
-  closeNameEditor();                 // ✅ save button disappears because editor hides
-  setStatus("Name saved ✅");
+  closeNameEditor();
+  setStatus("");
 }
 
-// ---------------- streak logic ----------------
+// ---- milestone UI ----
+function buildMilestoneBars() {
+  if (!milestoneBarsEl) return;
+  milestoneBarsEl.innerHTML = "";
+
+  for (const m of MILESTONES) {
+    const wrap = document.createElement("div");
+    wrap.className = "mBar";
+    wrap.dataset.milestone = String(m);
+
+    const box = document.createElement("div");
+    box.className = "mBarBox";
+
+    const fill = document.createElement("div");
+    fill.className = "mBarFill";
+    fill.style.height = "0%";
+
+    const label = document.createElement("div");
+    label.className = "mBarLabel";
+    label.textContent = String(m);
+
+    box.appendChild(fill);
+    wrap.appendChild(box);
+    wrap.appendChild(label);
+    milestoneBarsEl.appendChild(wrap);
+  }
+}
+
+function getNextMilestone(count) {
+  return MILESTONES.find((m) => count < m) || null;
+}
+
+function getPrevMilestone(count) {
+  let prev = 0;
+  for (const m of MILESTONES) {
+    if (m <= count) prev = m;
+  }
+  return prev;
+}
+
+function updateMilestones(count) {
+  if (!milestoneBarsEl) return;
+
+  const next = getNextMilestone(count);
+  const prev = getPrevMilestone(count);
+
+  if (milestoneNextEl) {
+    if (next === null) milestoneNextEl.textContent = "Next: Completed 🎉";
+    else milestoneNextEl.textContent = `Next: ${next} (${next - count} left)`;
+  }
+
+  const bars = milestoneBarsEl.querySelectorAll(".mBar");
+  bars.forEach((bar) => {
+    const m = Number(bar.dataset.milestone || "0");
+    const fill = bar.querySelector(".mBarFill");
+
+    // Completed
+    if (count >= m) {
+      bar.classList.add("mBarDone");
+      if (fill) fill.style.height = "100%";
+      return;
+    }
+
+    bar.classList.remove("mBarDone");
+
+    // Only the next milestone bar fills partially, based on progress since previous milestone
+    if (next !== null && m === next) {
+      const span = Math.max(1, next - prev);
+      const pct = clamp(((count - prev) / span) * 100, 0, 100);
+      if (fill) fill.style.height = `${pct}%`;
+    } else {
+      if (fill) fill.style.height = "0%";
+    }
+  });
+}
+
+// ---- milestone celebration ----
+function openMilestoneModal(milestone) {
+  if (!milestoneModal || !milestoneNumber) return;
+  milestoneNumber.textContent = String(milestone);
+  milestoneModal.classList.remove("hidden");
+}
+
+function closeMilestoneModal() {
+  if (!milestoneModal) return;
+  milestoneModal.classList.add("hidden");
+}
+
+function burstConfetti() {
+  if (!confettiLayer) return;
+
+  const pieces = 120;
+  const colors = [
+    "rgba(124,92,255,0.95)",
+    "rgba(255,77,77,0.90)",
+    "rgba(46,213,115,0.90)",
+    "rgba(255,206,86,0.95)",
+    "rgba(0,206,255,0.90)",
+  ];
+
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  for (let i = 0; i < pieces; i++) {
+    const c = document.createElement("div");
+    c.className = "confetti";
+
+    const x = Math.random() * w;
+    const startY = -20 - Math.random() * 60;
+
+    c.style.left = `${x}px`;
+    c.style.top = `${startY}px`;
+    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+    c.style.transform = `translateY(0) rotate(${Math.random() * 180}deg)`;
+    c.style.animationDuration = `${850 + Math.random() * 650}ms`;
+
+    // slightly different fall distance by setting CSS var via translate in keyframes style alternative:
+    // easiest: randomize final translate using marginTop-ish hack
+    // We'll just let animation do its thing; remove after.
+    confettiLayer.appendChild(c);
+
+    setTimeout(() => c.remove(), 1400);
+  }
+}
+
+// ---- streak logic ----
 function render() {
   const count = Number(localStorage.getItem(KEYS.count) || "0");
   const last = localStorage.getItem(KEYS.last) || "";
@@ -131,13 +254,7 @@ function render() {
     }
   }
 
-  // reminders UI state
-  const savedTime = localStorage.getItem(KEYS.remindTime) || "";
-  if (remindTimeInput) remindTimeInput.value = savedTime;
-  if (repeat30Chk) repeat30Chk.checked = (localStorage.getItem(KEYS.repeat30) || "0") === "1";
-
-  updateNextReminderText();
-  updateReminderButtonText();
+  updateMilestones(count);
 }
 
 function checkIn() {
@@ -150,6 +267,8 @@ function checkIn() {
     render();
     return;
   }
+
+  const before = count;
 
   if (!last) {
     count = 1;
@@ -167,156 +286,25 @@ function checkIn() {
 
   localStorage.setItem(KEYS.count, String(count));
   localStorage.setItem(KEYS.last, today);
+
+  // Milestone celebration only if you HIT it exactly on this check-in
+  const hitMilestone = MILESTONES.includes(count) && count !== before;
   render();
+
+  if (hitMilestone) {
+    burstConfetti();
+    openMilestoneModal(count);
+  }
 }
 
 function resetStreak() {
   localStorage.setItem(KEYS.count, "0");
   localStorage.removeItem(KEYS.last);
-  setStatus("Reset done ✅");
+  setStatus("Reset done.");
   render();
 }
 
-// ---------------- OneSignal / reminders ----------------
-function onesignalReady(fn) {
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    try {
-      await fn(OneSignal);
-    } catch (e) {
-      console.error(e);
-      setNotifStatus("OneSignal error. Check console.");
-    }
-  });
-}
-
-function updateReminderButtonText() {
-  onesignalReady(async (OneSignal) => {
-    const perm = OneSignal.Notifications.permission; // 'default' | 'granted' | 'denied'
-    const optedIn = OneSignal.User?.PushSubscription?.optedIn;
-
-    if (!enableNotifsBtn) return;
-
-    if (perm === "denied") {
-      enableNotifsBtn.textContent = "Notifications blocked ❌";
-      enableNotifsBtn.disabled = true;
-      setNotifStatus("Your browser blocked notifications. You must allow them in site settings.");
-      return;
-    }
-
-    if (perm === "granted" && optedIn) {
-      enableNotifsBtn.textContent = "Reminders enabled ✅";
-      enableNotifsBtn.disabled = true;
-      setNotifStatus("You’re already subscribed. Reminders are ready ✅");
-    } else {
-      enableNotifsBtn.textContent = "Enable reminders";
-      enableNotifsBtn.disabled = false;
-      setNotifStatus("");
-    }
-  });
-}
-
-async function enableReminders() {
-  setNotifStatus("Opening permission prompt…");
-
-  onesignalReady(async (OneSignal) => {
-    const perm = OneSignal.Notifications.permission;
-
-    if (perm === "denied") {
-      setNotifStatus("Notifications are blocked in your browser settings ❌");
-      return;
-    }
-
-    // If already allowed, don't “hang” — just show success
-    if (perm === "granted") {
-      // ensure subscription is opted in
-      await OneSignal.User.PushSubscription.optIn();
-      setNotifStatus("Already allowed ✅ Reminders enabled.");
-      updateReminderButtonText();
-      return;
-    }
-
-    // Ask permission (this should trigger the browser popup)
-    await OneSignal.Notifications.requestPermission();
-
-    // After permission, opt-in
-    if (OneSignal.Notifications.permission === "granted") {
-      await OneSignal.User.PushSubscription.optIn();
-      setNotifStatus("Enabled ✅");
-    } else {
-      setNotifStatus("Not enabled (permission not granted).");
-    }
-
-    updateReminderButtonText();
-  });
-}
-
-function updateNextReminderText() {
-  const t = localStorage.getItem(KEYS.remindTime) || "";
-  if (!t) {
-    setNextReminder("Next reminder: (pick a time)");
-    return;
-  }
-
-  const [hh, mm] = t.split(":").map(Number);
-  const now = new Date();
-  const next = new Date();
-  next.setHours(hh, mm, 0, 0);
-  if (next <= now) next.setDate(next.getDate() + 1);
-
-  const pretty = next.toLocaleString(undefined, {
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  setNextReminder(`Next reminder: ${pretty}`);
-}
-
-function saveReminderTime() {
-  if (!remindTimeInput) return;
-  const val = (remindTimeInput.value || "").trim(); // "HH:MM" or ""
-  if (!val) {
-    setNotifStatus("Pick a time first.");
-    return;
-  }
-  localStorage.setItem(KEYS.remindTime, val);
-  setNotifStatus("Reminder time saved ✅");
-  updateNextReminderText();
-}
-
-function setRepeatEvery30(checked) {
-  localStorage.setItem(KEYS.repeat30, checked ? "1" : "0");
-
-  // stop old timer
-  if (repeat30Timer) {
-    clearInterval(repeat30Timer);
-    repeat30Timer = null;
-  }
-
-  if (!checked) return;
-
-  // This only works while the tab is open (browser limitation).
-  // We'll use the browser Notifications API (requires permission granted).
-  if (!("Notification" in window)) {
-    setNotifStatus("This browser doesn’t support notifications.");
-    return;
-  }
-
-  if (Notification.permission !== "granted") {
-    setNotifStatus("To repeat every 30 mins, enable notifications first.");
-    return;
-  }
-
-  repeat30Timer = setInterval(() => {
-    const title = localStorage.getItem(KEYS.name) || "Streak Reminder";
-    new Notification(title, { body: "Quick reminder to check in ✅" });
-  }, 30 * 60 * 1000);
-
-  setNotifStatus("30-min repeats ON (while tab is open) ✅");
-}
-
-// ---------------- events ----------------
+// ---- wire events ----
 if (themeToggle) themeToggle.addEventListener("click", toggleTheme);
 if (checkInBtn) checkInBtn.addEventListener("click", checkIn);
 if (resetBtn) resetBtn.addEventListener("click", resetStreak);
@@ -335,6 +323,7 @@ if (nameInput) {
   });
 }
 
+// Click outside editor closes it
 document.addEventListener("click", (e) => {
   if (!nameEditor || nameEditor.classList.contains("hidden")) return;
   const clickedInside =
@@ -342,20 +331,17 @@ document.addEventListener("click", (e) => {
   if (!clickedInside) closeNameEditor();
 });
 
-// reminders events
-if (enableNotifsBtn) enableNotifsBtn.addEventListener("click", enableReminders);
-if (saveRemindTimeBtn) saveRemindTimeBtn.addEventListener("click", saveReminderTime);
-if (repeat30Chk) repeat30Chk.addEventListener("change", (e) => setRepeatEvery30(e.target.checked));
-
-// ---------------- init ----------------
-render();
-
-// Update button state once OneSignal is ready
-updateReminderButtonText();
-
-// If repeat30 was on, re-enable it (only if permission already granted)
-if ((localStorage.getItem(KEYS.repeat30) || "0") === "1") {
-  if ("Notification" in window && Notification.permission === "granted") {
-    setRepeatEvery30(true);
-  }
+// Modal close
+if (milestoneClose) milestoneClose.addEventListener("click", closeMilestoneModal);
+if (milestoneModal) {
+  milestoneModal.addEventListener("click", (e) => {
+    if (e.target === milestoneModal) closeMilestoneModal();
+  });
 }
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeMilestoneModal();
+});
+
+// ---- init ----
+buildMilestoneBars();
+render();
