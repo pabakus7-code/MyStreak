@@ -29,7 +29,7 @@ const streakEl = $("streak");
 const lastCheckedEl = $("lastChecked");
 const statusEl = $("status");
 
-const checkInBtn = $("checkIn");     // button id in new HTML
+const checkInBtn = $("checkIn");
 const resetBtn = $("reset");
 
 const themeToggle = $("themeToggle");
@@ -40,23 +40,37 @@ const nameEditor = $("nameEditor");
 const nameInput = $("nameInput");
 const nameSave = $("nameSave");
 
+// Reminders UI
+const enableNotifsBtn = $("enableNotifs");
+const remindTimeSelect = $("remindTime");
+const notifStatusEl = $("notifStatus");
+
 // ---- storage keys ----
 const KEYS = {
   count: "streak_count",
   last: "streak_last_checked", // YYYY-MM-DD
   name: "streak_name",
   theme: "theme", // "light" | "dark"
+  remindTime: "remind_time_local", // "HH:MM"
 };
 
 function setStatus(msg) {
   if (statusEl) statusEl.textContent = msg || "";
 }
 
+function setNotifStatus(msg) {
+  if (notifStatusEl) notifStatusEl.textContent = msg || "";
+}
+
 // ---- theme ----
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem(KEYS.theme, theme);
-  if (themeToggle) themeToggle.textContent = theme === "dark" ? "🌙" : "☀️";
+
+  // If theme is dark, show moon (you are in dark mode).
+  // If theme is light, show moon too? most people prefer: show opposite icon:
+  // We'll show moon when light (to switch to dark), sun when dark (to switch to light).
+  if (themeToggle) themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
 }
 function toggleTheme() {
   const cur = localStorage.getItem(KEYS.theme) || "light";
@@ -94,6 +108,7 @@ function render() {
   const last = localStorage.getItem(KEYS.last) || "";
   const name = localStorage.getItem(KEYS.name) || "Streak Tracker";
   const theme = localStorage.getItem(KEYS.theme) || "light";
+  const savedTime = localStorage.getItem(KEYS.remindTime) || "";
 
   if (nameDisplay) nameDisplay.textContent = name;
   document.title = name;
@@ -115,9 +130,9 @@ function render() {
     }
   }
 
-  // hide editor by default (unless you opened it)
-  if (nameEditor && !nameEditor.classList.contains("hidden") && document.activeElement !== nameInput) {
-    // do nothing
+  // restore dropdown selection
+  if (remindTimeSelect && savedTime && remindTimeSelect.value !== savedTime) {
+    remindTimeSelect.value = savedTime;
   }
 }
 
@@ -158,6 +173,42 @@ function resetStreak() {
   render();
 }
 
+// ---- OneSignal helpers ----
+// Run code once OneSignal is ready (won't crash if SDK hasn't loaded yet)
+function withOneSignal(fn) {
+  try {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async function(OneSignal) {
+      await fn(OneSignal);
+    });
+  } catch (e) {
+    console.error(e);
+    setNotifStatus("Notifications not available in this browser.");
+  }
+}
+
+async function enableNotifications() {
+  setNotifStatus("Opening permission prompt…");
+  withOneSignal(async (OneSignal) => {
+    // Ask permission
+    await OneSignal.Notifications.requestPermission();
+    // If user allowed, this will be granted. If blocked, it stays denied.
+    setNotifStatus("If you clicked Allow, reminders are enabled ✅");
+  });
+}
+
+async function saveReminderTimeTag(time) {
+  // Save on device too (so dropdown stays selected)
+  localStorage.setItem(KEYS.remindTime, time);
+  setNotifStatus(`Saving time ${time}…`);
+
+  withOneSignal(async (OneSignal) => {
+    // Save per-user preference in OneSignal
+    await OneSignal.User.addTag("remind_time", time);
+    setNotifStatus(`Reminder time saved: ${time} ✅`);
+  });
+}
+
 // ---- wire events (only if elements exist) ----
 if (themeToggle) themeToggle.addEventListener("click", toggleTheme);
 if (checkInBtn) checkInBtn.addEventListener("click", checkIn);
@@ -184,6 +235,21 @@ document.addEventListener("click", (e) => {
     nameEditor.contains(e.target) || (nameDisplay && nameDisplay.contains(e.target));
   if (!clickedInside) closeNameEditor();
 });
+
+// Reminders UI wiring
+if (enableNotifsBtn) {
+  enableNotifsBtn.addEventListener("click", () => {
+    enableNotifications();
+  });
+}
+
+if (remindTimeSelect) {
+  remindTimeSelect.addEventListener("change", (e) => {
+    const time = e.target.value;
+    if (!time) return;
+    saveReminderTimeTag(time);
+  });
+}
 
 // Init
 render();
