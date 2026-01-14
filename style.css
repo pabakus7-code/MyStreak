@@ -217,6 +217,14 @@ body{
   margin-top: 6px;
 }
 
+.timeRow{
+  width: 100%;
+  max-width: 520px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
 .reminders .input{
   max-width: 520px;
   width: 100%;
@@ -232,4 +240,5 @@ body{
   .bigNum{ font-size: 56px; }
   .buttons{ grid-template-columns: 1fr; }
   .nameEditor{ flex-direction: column; }
+  .timeRow{ grid-template-columns: 1fr; }
 }
