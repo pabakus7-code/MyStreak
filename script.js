@@ -1,4 +1,4 @@
-// ---- helpers ----
+// ---------------- helpers ----------------
 const pad2 = (n) => String(n).padStart(2, "0");
 const todayISO = () => {
   const d = new Date();
@@ -20,20 +20,19 @@ const daysBetween = (a, b) => {
   const t2 = Date.UTC(y2, m2 - 1, d2);
   return Math.floor((t2 - t1) / 86400000);
 };
-
-// Safe getter (prevents crashing)
 const $ = (id) => document.getElementById(id);
 
-// ---- elements ----
+// ---------------- elements ----------------
 const streakEl = $("streak");
 const lastCheckedEl = $("lastChecked");
 const statusEl = $("status");
 
 const checkInBtn = $("checkIn");
 const resetBtn = $("reset");
+
 const themeToggle = $("themeToggle");
 
-// Name click-to-edit UI
+// Name edit
 const nameDisplay = $("nameDisplay");
 const nameEditor = $("nameEditor");
 const nameInput = $("nameInput");
@@ -41,18 +40,23 @@ const nameSave = $("nameSave");
 
 // Reminders UI
 const enableNotifsBtn = $("enableNotifs");
-const remindTimeInput = $("remindTimeInput");
+const remindTimeInput = $("remindTime");       // <input type="time">
 const saveRemindTimeBtn = $("saveRemindTime");
+const repeat30Chk = $("repeat30");
 const notifStatusEl = $("notifStatus");
+const nextReminderEl = $("nextReminder");
 
-// ---- storage keys ----
+// ---------------- storage keys ----------------
 const KEYS = {
   count: "streak_count",
-  last: "streak_last_checked", // YYYY-MM-DD
+  last: "streak_last_checked",
   name: "streak_name",
-  theme: "theme",              // "light" | "dark"
-  remindTime: "remind_time_local" // "HH:MM"
+  theme: "theme",
+  remindTime: "remind_time",     // "HH:MM"
+  repeat30: "repeat_30_open_tab" // "1" or "0"
 };
+
+let repeat30Timer = null;
 
 function setStatus(msg) {
   if (statusEl) statusEl.textContent = msg || "";
@@ -60,20 +64,22 @@ function setStatus(msg) {
 function setNotifStatus(msg) {
   if (notifStatusEl) notifStatusEl.textContent = msg || "";
 }
+function setNextReminder(msg) {
+  if (nextReminderEl) nextReminderEl.textContent = msg || "";
+}
 
-// ---- theme ----
+// ---------------- theme ----------------
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem(KEYS.theme, theme);
-  // show the opposite icon (what you'll switch to)
-  if (themeToggle) themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
+  if (themeToggle) themeToggle.textContent = theme === "dark" ? "🌙" : "☀️";
 }
 function toggleTheme() {
   const cur = localStorage.getItem(KEYS.theme) || "light";
   applyTheme(cur === "dark" ? "light" : "dark");
 }
 
-// ---- name editor ----
+// ---------------- name editor ----------------
 function openNameEditor() {
   if (!nameEditor || !nameInput) return;
   nameEditor.classList.remove("hidden");
@@ -94,17 +100,16 @@ function saveName() {
   localStorage.setItem(KEYS.name, val);
   if (nameDisplay) nameDisplay.textContent = val;
   document.title = val;
-  closeNameEditor();
+  closeNameEditor();                 // ✅ save button disappears because editor hides
   setStatus("Name saved ✅");
 }
 
-// ---- streak logic ----
+// ---------------- streak logic ----------------
 function render() {
   const count = Number(localStorage.getItem(KEYS.count) || "0");
   const last = localStorage.getItem(KEYS.last) || "";
   const name = localStorage.getItem(KEYS.name) || "Streak Tracker";
   const theme = localStorage.getItem(KEYS.theme) || "light";
-  const savedTime = localStorage.getItem(KEYS.remindTime) || "";
 
   if (nameDisplay) nameDisplay.textContent = name;
   document.title = name;
@@ -126,10 +131,13 @@ function render() {
     }
   }
 
-  // restore time input
-  if (remindTimeInput && savedTime && remindTimeInput.value !== savedTime) {
-    remindTimeInput.value = savedTime;
-  }
+  // reminders UI state
+  const savedTime = localStorage.getItem(KEYS.remindTime) || "";
+  if (remindTimeInput) remindTimeInput.value = savedTime;
+  if (repeat30Chk) repeat30Chk.checked = (localStorage.getItem(KEYS.repeat30) || "0") === "1";
+
+  updateNextReminderText();
+  updateReminderButtonText();
 }
 
 function checkIn() {
@@ -165,90 +173,150 @@ function checkIn() {
 function resetStreak() {
   localStorage.setItem(KEYS.count, "0");
   localStorage.removeItem(KEYS.last);
-  setStatus("Reset done.");
+  setStatus("Reset done ✅");
   render();
 }
 
-// ---- OneSignal helpers ----
-function withOneSignal(fn) {
-  try {
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async function(OneSignal) {
+// ---------------- OneSignal / reminders ----------------
+function onesignalReady(fn) {
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    try {
       await fn(OneSignal);
-    });
-  } catch (e) {
-    console.error(e);
-    setNotifStatus("Notifications not available in this browser.");
-  }
+    } catch (e) {
+      console.error(e);
+      setNotifStatus("OneSignal error. Check console.");
+    }
+  });
 }
 
-function formatNextReminder(timeHHMM) {
-  const [hh, mm] = timeHHMM.split(":").map(Number);
+function updateReminderButtonText() {
+  onesignalReady(async (OneSignal) => {
+    const perm = OneSignal.Notifications.permission; // 'default' | 'granted' | 'denied'
+    const optedIn = OneSignal.User?.PushSubscription?.optedIn;
+
+    if (!enableNotifsBtn) return;
+
+    if (perm === "denied") {
+      enableNotifsBtn.textContent = "Notifications blocked ❌";
+      enableNotifsBtn.disabled = true;
+      setNotifStatus("Your browser blocked notifications. You must allow them in site settings.");
+      return;
+    }
+
+    if (perm === "granted" && optedIn) {
+      enableNotifsBtn.textContent = "Reminders enabled ✅";
+      enableNotifsBtn.disabled = true;
+      setNotifStatus("You’re already subscribed. Reminders are ready ✅");
+    } else {
+      enableNotifsBtn.textContent = "Enable reminders";
+      enableNotifsBtn.disabled = false;
+      setNotifStatus("");
+    }
+  });
+}
+
+async function enableReminders() {
+  setNotifStatus("Opening permission prompt…");
+
+  onesignalReady(async (OneSignal) => {
+    const perm = OneSignal.Notifications.permission;
+
+    if (perm === "denied") {
+      setNotifStatus("Notifications are blocked in your browser settings ❌");
+      return;
+    }
+
+    // If already allowed, don't “hang” — just show success
+    if (perm === "granted") {
+      // ensure subscription is opted in
+      await OneSignal.User.PushSubscription.optIn();
+      setNotifStatus("Already allowed ✅ Reminders enabled.");
+      updateReminderButtonText();
+      return;
+    }
+
+    // Ask permission (this should trigger the browser popup)
+    await OneSignal.Notifications.requestPermission();
+
+    // After permission, opt-in
+    if (OneSignal.Notifications.permission === "granted") {
+      await OneSignal.User.PushSubscription.optIn();
+      setNotifStatus("Enabled ✅");
+    } else {
+      setNotifStatus("Not enabled (permission not granted).");
+    }
+
+    updateReminderButtonText();
+  });
+}
+
+function updateNextReminderText() {
+  const t = localStorage.getItem(KEYS.remindTime) || "";
+  if (!t) {
+    setNextReminder("Next reminder: (pick a time)");
+    return;
+  }
+
+  const [hh, mm] = t.split(":").map(Number);
   const now = new Date();
   const next = new Date();
   next.setHours(hh, mm, 0, 0);
   if (next <= now) next.setDate(next.getDate() + 1);
 
-  const pretty = next.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  const day = next.toLocaleDateString([], { weekday: "short" });
-  return `Next reminder: ${pretty} (${day}) ✅`;
+  const pretty = next.toLocaleString(undefined, {
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  setNextReminder(`Next reminder: ${pretty}`);
 }
 
-function snapTo30Minutes(timeHHMM) {
-  const [hh, mm] = timeHHMM.split(":").map(Number);
-  const snapped = mm < 15 ? 0 : mm < 45 ? 30 : 0;
-  let hour = hh;
-  if (mm >= 45) hour = (hh + 1) % 24;
-  return `${pad2(hour)}:${pad2(snapped)}`;
+function saveReminderTime() {
+  if (!remindTimeInput) return;
+  const val = (remindTimeInput.value || "").trim(); // "HH:MM" or ""
+  if (!val) {
+    setNotifStatus("Pick a time first.");
+    return;
+  }
+  localStorage.setItem(KEYS.remindTime, val);
+  setNotifStatus("Reminder time saved ✅");
+  updateNextReminderText();
 }
 
-async function enableNotifications() {
-  const perm = typeof Notification !== "undefined" ? Notification.permission : "default";
+function setRepeatEvery30(checked) {
+  localStorage.setItem(KEYS.repeat30, checked ? "1" : "0");
 
-  if (perm === "granted") {
-    const savedTime = localStorage.getItem(KEYS.remindTime) || "";
-    setNotifStatus(savedTime ? formatNextReminder(savedTime) : "Reminders enabled ✅ Pick a time below.");
+  // stop old timer
+  if (repeat30Timer) {
+    clearInterval(repeat30Timer);
+    repeat30Timer = null;
+  }
+
+  if (!checked) return;
+
+  // This only works while the tab is open (browser limitation).
+  // We'll use the browser Notifications API (requires permission granted).
+  if (!("Notification" in window)) {
+    setNotifStatus("This browser doesn’t support notifications.");
     return;
   }
 
-  if (perm === "denied") {
-    setNotifStatus("Notifications are blocked ❌ Allow them in browser settings to use reminders.");
+  if (Notification.permission !== "granted") {
+    setNotifStatus("To repeat every 30 mins, enable notifications first.");
     return;
   }
 
-  setNotifStatus("Opening permission prompt…");
-  withOneSignal(async (OneSignal) => {
-    await OneSignal.Notifications.requestPermission();
+  repeat30Timer = setInterval(() => {
+    const title = localStorage.getItem(KEYS.name) || "Streak Reminder";
+    new Notification(title, { body: "Quick reminder to check in ✅" });
+  }, 30 * 60 * 1000);
 
-    const after = typeof Notification !== "undefined" ? Notification.permission : "default";
-    if (after === "granted") {
-      const savedTime = localStorage.getItem(KEYS.remindTime) || "";
-      setNotifStatus(savedTime ? formatNextReminder(savedTime) : "Reminders enabled ✅ Pick a time below.");
-    } else {
-      setNotifStatus("Permission not granted. If you want reminders, click Allow next time.");
-    }
-  });
+  setNotifStatus("30-min repeats ON (while tab is open) ✅");
 }
 
-async function saveReminderTimeTag(rawTime) {
-  if (!rawTime) return;
-
-  const time = snapTo30Minutes(rawTime);
-
-  if (remindTimeInput && remindTimeInput.value !== time) {
-    remindTimeInput.value = time;
-  }
-
-  localStorage.setItem(KEYS.remindTime, time);
-  setNotifStatus("Saving reminder time…");
-
-  withOneSignal(async (OneSignal) => {
-    await OneSignal.User.addTag("remind_time", time);
-    setNotifStatus(formatNextReminder(time));
-  });
-}
-
-// ---- wire events ----
+// ---------------- events ----------------
 if (themeToggle) themeToggle.addEventListener("click", toggleTheme);
 if (checkInBtn) checkInBtn.addEventListener("click", checkIn);
 if (resetBtn) resetBtn.addEventListener("click", resetStreak);
@@ -267,7 +335,6 @@ if (nameInput) {
   });
 }
 
-// Click outside editor closes it
 document.addEventListener("click", (e) => {
   if (!nameEditor || nameEditor.classList.contains("hidden")) return;
   const clickedInside =
@@ -275,31 +342,20 @@ document.addEventListener("click", (e) => {
   if (!clickedInside) closeNameEditor();
 });
 
-// Reminders UI wiring
-if (enableNotifsBtn) {
-  enableNotifsBtn.addEventListener("click", () => {
-    enableNotifications();
-  });
-}
+// reminders events
+if (enableNotifsBtn) enableNotifsBtn.addEventListener("click", enableReminders);
+if (saveRemindTimeBtn) saveRemindTimeBtn.addEventListener("click", saveReminderTime);
+if (repeat30Chk) repeat30Chk.addEventListener("change", (e) => setRepeatEvery30(e.target.checked));
 
-if (saveRemindTimeBtn) {
-  saveRemindTimeBtn.addEventListener("click", () => {
-    saveReminderTimeTag(remindTimeInput?.value || "");
-  });
-}
-
-// Optional: auto-save on change
-if (remindTimeInput) {
-  remindTimeInput.addEventListener("change", (e) => {
-    saveReminderTimeTag(e.target.value);
-  });
-}
-
-// Init
+// ---------------- init ----------------
 render();
 
-// Show reminder status on load if already granted
-if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-  const savedTime = localStorage.getItem(KEYS.remindTime) || "";
-  setNotifStatus(savedTime ? formatNextReminder(savedTime) : "Reminders enabled ✅ Pick a time below.");
+// Update button state once OneSignal is ready
+updateReminderButtonText();
+
+// If repeat30 was on, re-enable it (only if permission already granted)
+if ((localStorage.getItem(KEYS.repeat30) || "0") === "1") {
+  if ("Notification" in window && Notification.permission === "granted") {
+    setRepeatEvery30(true);
+  }
 }
