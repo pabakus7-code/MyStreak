@@ -4,24 +4,30 @@
   --card: #ffffff;
   --text: #0f172a;
   --muted: rgba(15,23,42,0.70);
-  --border: rgba(15,23,42,0.12);
+  --border: rgba(15,23,42,0.14);
   --shadow: 0 18px 50px rgba(15,23,42,0.10);
+
   --primary: #4f46e5;
   --danger: #dc2626;
+
   --ghost: rgba(15,23,42,0.06);
+  --ghost2: rgba(15,23,42,0.10);
 }
 
-/* DARK mode */
+/* DARK mode (higher contrast) */
 html[data-theme="dark"]{
-  --bg: #0b0f17;
-  --card: rgba(255,255,255,0.06);
-  --text: #eaf0ff;
-  --muted: rgba(234,240,255,0.70);
-  --border: rgba(255,255,255,0.10);
-  --shadow: 0 18px 60px rgba(0,0,0,0.45);
-  --primary: #7c5cff;
-  --danger: #ff4d4d;
-  --ghost: rgba(255,255,255,0.08);
+  --bg: #070a12;
+  --card: rgba(17, 24, 39, 0.82);     /* darker + less see-through */
+  --text: #f3f7ff;                    /* brighter */
+  --muted: rgba(243,247,255,0.72);
+  --border: rgba(255,255,255,0.14);
+  --shadow: 0 18px 70px rgba(0,0,0,0.55);
+
+  --primary: #8b73ff;
+  --danger: #ff5c5c;
+
+  --ghost: rgba(255,255,255,0.10);
+  --ghost2: rgba(255,255,255,0.16);
 }
 
 *{ box-sizing: border-box; }
@@ -29,9 +35,10 @@ html[data-theme="dark"]{
 body{
   margin: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  background: radial-gradient(1200px 700px at 20% -10%, rgba(124,92,255,0.18), transparent 55%),
-              radial-gradient(900px 600px at 90% 0%, rgba(255,77,77,0.10), transparent 60%),
-              var(--bg);
+  background:
+    radial-gradient(1200px 700px at 20% -10%, rgba(139,115,255,0.18), transparent 55%),
+    radial-gradient(900px 600px at 90% 0%, rgba(255,92,92,0.12), transparent 60%),
+    var(--bg);
   color: var(--text);
   min-height: 100vh;
 }
@@ -45,9 +52,10 @@ body{
   height: 44px;
   border-radius: 14px;
   border: 1px solid var(--border);
-  background: var(--ghost);
+  background: var(--ghost2);
   color: var(--text);
   cursor: pointer;
+  backdrop-filter: blur(8px);
 }
 
 .wrap{
@@ -62,7 +70,7 @@ body{
   border-radius: 22px;
   padding: 18px;
   box-shadow: var(--shadow);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
 }
 
 .nameArea{
@@ -80,7 +88,7 @@ body{
 }
 
 .nameDisplay:focus{
-  outline: 2px solid rgba(124,92,255,0.35);
+  outline: 2px solid rgba(139,115,255,0.45);
   outline-offset: 6px;
   border-radius: 12px;
 }
@@ -92,14 +100,14 @@ body{
   max-width: 520px;
 }
 
-.hidden{ display: none; }
+.hidden{ display: none !important; }
 
 .input{
   flex: 1;
   padding: 12px 12px;
   border-radius: 14px;
   border: 1px solid var(--border);
-  background: var(--ghost);
+  background: var(--ghost2);
   color: var(--text);
   outline: none;
 }
@@ -138,7 +146,7 @@ body{
   padding: 10px 12px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--ghost);
+  background: var(--ghost2);
   color: var(--muted);
 }
 
@@ -169,22 +177,22 @@ body{
   border-radius: 16px;
   padding: 12px 14px;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text);
-  background: var(--ghost);
+  background: var(--ghost2);
 }
 
 .btnPrimary{
-  background: linear-gradient(135deg, rgba(124,92,255,0.95), rgba(124,92,255,0.65));
-  border-color: rgba(124,92,255,0.55);
+  background: linear-gradient(135deg, rgba(139,115,255,0.95), rgba(139,115,255,0.65));
+  border-color: rgba(139,115,255,0.55);
 }
 
 .btnDanger{
-  background: linear-gradient(135deg, rgba(255,77,77,0.95), rgba(255,77,77,0.60));
-  border-color: rgba(255,77,77,0.55);
+  background: linear-gradient(135deg, rgba(255,92,92,0.95), rgba(255,92,92,0.62));
+  border-color: rgba(255,92,92,0.55);
 }
 
-.btnGhost{ background: var(--ghost); }
+.btnGhost{ background: var(--ghost2); }
 
 .btn:disabled{
   opacity: 0.55;
@@ -216,7 +224,7 @@ body{
 }
 
 .milestonesTitle{
-  font-weight: 800;
+  font-weight: 900;
   letter-spacing: 0.2px;
 }
 
@@ -255,14 +263,14 @@ body{
   left: 0;
   width: 100%;
   height: 0%;
-  background: linear-gradient(180deg, rgba(124,92,255,0.95), rgba(124,92,255,0.55));
+  background: linear-gradient(180deg, rgba(139,115,255,0.98), rgba(139,115,255,0.55));
   border-top-left-radius: 14px;
   border-top-right-radius: 14px;
   transition: height 280ms ease;
 }
 
 .mBarDone .mBarFill{
-  background: linear-gradient(180deg, rgba(124,92,255,1), rgba(124,92,255,0.75));
+  background: linear-gradient(180deg, rgba(139,115,255,1), rgba(139,115,255,0.75));
 }
 
 .mBarLabel{
@@ -273,7 +281,7 @@ body{
 
 .mBarDone .mBarLabel{
   color: var(--text);
-  font-weight: 700;
+  font-weight: 800;
 }
 
 /* ---------- Modal + Confetti ---------- */
@@ -281,7 +289,7 @@ body{
 .modal{
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.50);
+  background: rgba(0,0,0,0.55);
   display: grid;
   place-items: center;
   z-index: 10000;
@@ -303,21 +311,21 @@ body{
   padding: 8px 12px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--ghost);
-  font-weight: 800;
+  background: var(--ghost2);
+  font-weight: 900;
   margin-bottom: 10px;
 }
 
 .modalNumber{
   font-size: 72px;
-  font-weight: 900;
+  font-weight: 950;
   letter-spacing: -1px;
   margin: 6px 0 0;
 }
 
 .modalText{
   color: var(--muted);
-  font-weight: 700;
+  font-weight: 800;
   margin-top: -6px;
 }
 
