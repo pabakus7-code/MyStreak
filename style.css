@@ -53,7 +53,7 @@ body{
 .wrap{
   width: min(720px, 92vw);
   margin: 0 auto;
-  padding: 80px 0 36px; /* space for top button */
+  padding: 80px 0 36px;
 }
 
 .card{
@@ -95,7 +95,7 @@ body{
 .hidden{ display: none; }
 
 .input{
-  flex: 1;
+  width: 100%;
   padding: 12px 12px;
   border-radius: 14px;
   border: 1px solid var(--border);
@@ -199,40 +199,39 @@ body{
   text-align: center;
 }
 
-/* --- Reminders section --- */
 .reminders{
   margin-top: 16px;
   padding-top: 14px;
   border-top: 1px solid var(--border);
   display: grid;
   gap: 10px;
-  justify-items: center;
+}
+
+.remTitle{
+  font-weight: 800;
+  text-align: center;
+}
+
+.remRow{
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: end;
 }
 
 .label{
-  width: 100%;
-  max-width: 520px;
   font-size: 12px;
   color: var(--muted);
-  margin-top: 6px;
+  margin-left: 4px;
 }
 
-.timeRow{
-  width: 100%;
-  max-width: 520px;
-  display: grid;
-  grid-template-columns: 1fr auto;
+.chk{
+  display: flex;
+  align-items: center;
   gap: 10px;
-}
-
-.reminders .input{
-  max-width: 520px;
-  width: 100%;
-}
-
-.reminders .btnGhost{
-  width: 100%;
-  max-width: 520px;
+  color: var(--muted);
+  font-size: 13px;
+  justify-content: center;
 }
 
 /* Mobile */
@@ -240,5 +239,5 @@ body{
   .bigNum{ font-size: 56px; }
   .buttons{ grid-template-columns: 1fr; }
   .nameEditor{ flex-direction: column; }
-  .timeRow{ grid-template-columns: 1fr; }
+  .remRow{ grid-template-columns: 1fr; }
 }
