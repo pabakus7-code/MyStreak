@@ -7,44 +7,40 @@
   <link rel="stylesheet" href="style.css" />
 
   <!-- OneSignal (Web SDK v16) -->
- <!-- OneSignal -->
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "9f5f66ba-cf0f-489b-935c-be80b53795bc",
-
-      // IMPORTANT for GitHub Pages project sites (repo name folder)
-      serviceWorkerPath: "/Streak-tracker/OneSignalSDKWorker.js",
-      serviceWorkerUpdaterPath: "/Streak-tracker/OneSignalSDKUpdaterWorker.js",
-      serviceWorkerParam: { scope: "/Streak-tracker/" }
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "9f5f66ba-cf0f-489b-935c-be80b53795bc",
+        // GitHub Pages project site (repo name folder)
+        serviceWorkerPath: "/Streak-tracker/OneSignalSDKWorker.js",
+        serviceWorkerUpdaterPath: "/Streak-tracker/OneSignalSDKUpdaterWorker.js",
+        serviceWorkerParam: { scope: "/Streak-tracker/" }
+      });
     });
-  });
-</script>
+  </script>
 </head>
 
 <body>
+  <!-- Theme toggle -->
   <button id="themeToggle" class="themeBtn" type="button" aria-label="Toggle theme">🌙</button>
 
   <main class="wrap">
     <section class="card">
 
+      <!-- Title / name editor -->
       <div class="nameArea">
         <h1 id="nameDisplay" class="nameDisplay" tabindex="0">Streak Tracker</h1>
 
         <div id="nameEditor" class="nameEditor hidden">
-          <input
-            id="nameInput"
-            class="input"
-            type="text"
-            maxlength="60"
-            placeholder="e.g. Walking the dog"
-          />
+          <input id="nameInput" class="input" type="text" maxlength="60"
+                 placeholder="e.g. Days free of smoking" />
           <button id="nameSave" class="btn btnGhost" type="button">Save</button>
         </div>
       </div>
 
+      <!-- Big number -->
       <div class="big">
         <div class="bigNum" id="streak">0</div>
         <div class="bigText">days</div>
@@ -58,6 +54,7 @@
         <div id="status" class="status"></div>
       </div>
 
+      <!-- Main buttons -->
       <div class="buttons">
         <button id="checkIn" class="btn btnPrimary" type="button">Check in today</button>
         <button id="reset" class="btn btnDanger" type="button">Reset</button>
@@ -65,69 +62,59 @@
 
       <p class="hint">You can only check in once per day. Miss a day and it resets.</p>
 
+      <hr class="sep" />
+
       <!-- Milestones -->
-      <div class="sectionHeader">
-        <div class="sectionTitle">Milestones</div>
-        <div class="sectionRight">Next: <span id="nextMilestone">—</span></div>
-      </div>
-
-      <div class="milestoneRow" id="milestoneRow"></div>
-
-      <div class="progressWrap">
-        <div class="progressTrack">
-          <div id="progressFill" class="progressFill"></div>
+      <div class="milestones">
+        <div class="milestoneHeader">
+          <div class="milestoneTitle">Milestones</div>
+          <div class="milestoneNext">Next: <span id="nextMilestone">—</span></div>
         </div>
-        <div class="progressMeta">
-          <span>Progress</span>
-          <span id="progressText">0 / 1</span>
+
+        <!-- numbers row like your sketch -->
+        <div id="milestoneRow" class="milestoneRow" aria-label="Milestones"></div>
+
+        <!-- progress bar -->
+        <div class="bar">
+          <div id="barFill" class="barFill"></div>
         </div>
       </div>
+
+      <hr class="sep" />
 
       <!-- Reminders -->
       <div class="reminders">
-        <div class="remindersTop">
+        <div class="remRow">
           <button id="enableNotifs" class="btn btnGhost" type="button">Enable reminders</button>
-          <div id="notifStatus" class="status"></div>
-        </div>
 
-        <div class="remindGrid">
-          <div class="field">
-            <label class="label" for="remindMode">Reminder type</label>
-            <select id="remindMode" class="input">
-              <option value="daily">Daily</option>
-              <option value="30min">Every 30 minutes (while browser is open)</option>
-            </select>
-          </div>
-
-          <div class="field" id="timeField">
+          <div class="timeBox">
             <label class="label" for="remindTime">Daily reminder time</label>
-            <input id="remindTime" class="input" type="time" step="1800" />
+            <input id="remindTime" class="input" type="time" step="60" />
           </div>
 
-          <div class="field actionField">
-            <label class="label" aria-hidden="true">&nbsp;</label>
-            <button id="saveReminder" class="btn btnPrimary" type="button">Save</button>
-          </div>
+          <button id="saveRemindTime" class="btn btnGhost" type="button">Save time</button>
         </div>
 
-        <div class="remindFooter">
-          <div class="status" id="nextReminderText"></div>
-        </div>
+        <div class="status" id="notifStatus"></div>
+        <div class="smallMuted" id="nextReminder"></div>
       </div>
+
     </section>
   </main>
 
-  <!-- Milestone popup -->
-  <div id="milestoneModal" class="modal hidden" aria-hidden="true">
+  <!-- Confetti canvas -->
+  <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
+
+  <!-- Milestone modal -->
+  <div id="milestoneModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Milestone">
     <div class="modalCard">
-      <button id="closeModal" class="modalClose" type="button" aria-label="Close">✕</button>
-      <div class="modalBig" id="modalBig">10</div>
-      <div class="modalSub">Days milestone 🎉</div>
-      <div class="modalHint">Keep going.</div>
+      <button id="modalClose" class="modalClose" type="button" aria-label="Close">✕</button>
+      <div class="modalNum" id="modalNum">10</div>
+      <div class="modalText">Days milestone 🎉</div>
+      <div class="modalSub">Keep going.</div>
     </div>
   </div>
 
   <script src="script.js"></script>
 </body>
 </html>
-
