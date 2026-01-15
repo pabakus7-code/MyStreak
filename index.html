@@ -7,21 +7,21 @@
   <link rel="stylesheet" href="style.css" />
 
   <!-- OneSignal (Web SDK v16) -->
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script>
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(async function(OneSignal) {
-      await OneSignal.init({
-        appId: "9f5f66ba-cf0f-489b-935c-be80b53795bc",
+ <!-- OneSignal -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "9f5f66ba-cf0f-489b-935c-be80b53795bc",
 
-        // IMPORTANT for GitHub Pages PROJECT sites (repo subfolder)
-        // Your site is https://pabakus7-code.github.io/Streak-tracker/
-        serviceWorkerPath: "/Streak-tracker/OneSignalSDKWorker.js",
-        serviceWorkerUpdaterPath: "/Streak-tracker/OneSignalSDKUpdaterWorker.js",
-        serviceWorkerParam: { scope: "/Streak-tracker/" }
-      });
+      // IMPORTANT for GitHub Pages project sites (repo name folder)
+      serviceWorkerPath: "/Streak-tracker/OneSignalSDKWorker.js",
+      serviceWorkerUpdaterPath: "/Streak-tracker/OneSignalSDKUpdaterWorker.js",
+      serviceWorkerParam: { scope: "/Streak-tracker/" }
     });
-  </script>
+  });
+</script>
 </head>
 
 <body>
@@ -130,3 +130,4 @@
   <script src="script.js"></script>
 </body>
 </html>
+
