@@ -1,44 +1,35 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Streak Tracker</title>
   <link rel="stylesheet" href="style.css" />
 
-  <!-- OneSignal (keep appId) -->
+  <!-- OneSignal (Web SDK v16) -->
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async function(OneSignal) {
       await OneSignal.init({
-        appId: "9f5f66ba-cf0f-489b-935c-be80b53795bc"
+        appId: "9f5f66ba-cf0f-489b-935c-be80b53795bc",
+
+        // IMPORTANT for GitHub Pages PROJECT sites (repo subfolder)
+        // Your site is https://pabakus7-code.github.io/Streak-tracker/
+        serviceWorkerPath: "/Streak-tracker/OneSignalSDKWorker.js",
+        serviceWorkerUpdaterPath: "/Streak-tracker/OneSignalSDKUpdaterWorker.js",
+        serviceWorkerParam: { scope: "/Streak-tracker/" }
       });
     });
   </script>
 </head>
 
 <body>
-  <!-- Confetti layer -->
-  <div id="confettiLayer" class="confettiLayer" aria-hidden="true"></div>
-
-  <!-- Milestone modal -->
-  <div id="milestoneModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Milestone reached">
-    <div class="modalCard">
-      <div class="modalBadge">Milestone reached 🎉</div>
-      <div id="milestoneNumber" class="modalNumber">0</div>
-      <div class="modalText">days</div>
-      <button id="milestoneClose" class="btn btnGhost modalBtn" type="button">Close</button>
-    </div>
-  </div>
-
-  <!-- Dark mode button -->
   <button id="themeToggle" class="themeBtn" type="button" aria-label="Toggle theme">🌙</button>
 
   <main class="wrap">
     <section class="card">
 
-      <!-- Click title to edit name -->
       <div class="nameArea">
         <h1 id="nameDisplay" class="nameDisplay" tabindex="0">Streak Tracker</h1>
 
@@ -48,7 +39,7 @@
             class="input"
             type="text"
             maxlength="60"
-            placeholder="e.g. Days free of smoking"
+            placeholder="e.g. Walking the dog"
           />
           <button id="nameSave" class="btn btnGhost" type="button">Save</button>
         </div>
@@ -74,50 +65,68 @@
 
       <p class="hint">You can only check in once per day. Miss a day and it resets.</p>
 
-      <!-- Milestones (your design) -->
-      <div class="milestonesWrap">
-        <div class="milestonesTopRow">
-          <div class="milestonesTitle">Milestones</div>
-          <div id="milestoneNext" class="milestonesNext">Next: —</div>
-        </div>
+      <!-- Milestones -->
+      <div class="sectionHeader">
+        <div class="sectionTitle">Milestones</div>
+        <div class="sectionRight">Next: <span id="nextMilestone">—</span></div>
+      </div>
 
-        <div class="milestoneTicks" id="milestoneTicks">
-          <span class="tick" data-m="1">1</span>
-          <span class="tick" data-m="5">5</span>
-          <span class="tick" data-m="10">10</span>
-          <span class="tick" data-m="30">30</span>
-          <span class="tick" data-m="50">50</span>
-          <span class="tick" data-m="100">100</span>
-          <span class="tick" data-m="500">500</span>
-          <span class="tick" data-m="1000">1000</span>
-        </div>
+      <div class="milestoneRow" id="milestoneRow"></div>
 
-        <div class="milestoneTrack" aria-label="Milestone progress bar">
-          <div id="milestoneFill" class="milestoneFill"></div>
+      <div class="progressWrap">
+        <div class="progressTrack">
+          <div id="progressFill" class="progressFill"></div>
+        </div>
+        <div class="progressMeta">
+          <span>Progress</span>
+          <span id="progressText">0 / 1</span>
         </div>
       </div>
 
       <!-- Reminders -->
       <div class="reminders">
-        <div class="remindersRow">
+        <div class="remindersTop">
           <button id="enableNotifs" class="btn btnGhost" type="button">Enable reminders</button>
+          <div id="notifStatus" class="status"></div>
+        </div>
 
-          <div class="timeBox">
+        <div class="remindGrid">
+          <div class="field">
+            <label class="label" for="remindMode">Reminder type</label>
+            <select id="remindMode" class="input">
+              <option value="daily">Daily</option>
+              <option value="30min">Every 30 minutes (while browser is open)</option>
+            </select>
+          </div>
+
+          <div class="field" id="timeField">
             <label class="label" for="remindTime">Daily reminder time</label>
-            <!-- Alarm/scroll wheel style on mobile -->
             <input id="remindTime" class="input" type="time" step="1800" />
           </div>
 
-          <button id="saveRemindTime" class="btn btnGhost" type="button">Save time</button>
+          <div class="field actionField">
+            <label class="label" aria-hidden="true">&nbsp;</label>
+            <button id="saveReminder" class="btn btnPrimary" type="button">Save</button>
+          </div>
         </div>
 
-        <div id="notifStatus" class="status"></div>
+        <div class="remindFooter">
+          <div class="status" id="nextReminderText"></div>
+        </div>
       </div>
-
     </section>
   </main>
 
-  <!-- IMPORTANT: must be EXACT filename -->
+  <!-- Milestone popup -->
+  <div id="milestoneModal" class="modal hidden" aria-hidden="true">
+    <div class="modalCard">
+      <button id="closeModal" class="modalClose" type="button" aria-label="Close">✕</button>
+      <div class="modalBig" id="modalBig">10</div>
+      <div class="modalSub">Days milestone 🎉</div>
+      <div class="modalHint">Keep going.</div>
+    </div>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>
